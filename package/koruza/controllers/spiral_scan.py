@@ -39,9 +39,9 @@ class SpiralScan(koruza.Application):
             self.step = command.get('step', 100)
             self.threshold = command.get('threshold', 10)
 
-            print 'got start command step=%d threshold=%d' % (self.step, self.threshold)
+            print (f'got start command step={self.step} threshold={self.step, self.threshold}') #corrected print statement for python 3
         elif command['command'] == 'stop' and self.state == 'go':
-            print 'got stop command'
+            print ('got stop command') #corrected print statement for python 3
             self.state = 'idle'
 
     def on_idle(self, bus, state, remote_state):
@@ -50,7 +50,7 @@ class SpiralScan(koruza.Application):
                 # Do nothing until we have known last state from SFP and motor drivers.
                 return
             # Get last known state for the first SFP module.
-            sfp = state['sfp']['sfp'].values()[0]
+            sfp = list(state['sfp']['sfp'].values())[0] #corrected syntax 
             # Get last known motor driver state.
             motor = state['motors']['motor']
 
@@ -79,7 +79,7 @@ class SpiralScan(koruza.Application):
                 # Check if some signal was detected and terminate the movement
                 if sfp['rx_power_mw'] > self.threshold:
                     self.state = 'idle'
-                    print 'found optical power'
+                    print ('found optical power')
 
         elif self.state == 'idle':
             pass

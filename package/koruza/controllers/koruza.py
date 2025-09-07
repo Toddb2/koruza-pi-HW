@@ -1,24 +1,24 @@
-import nnpy
+import pynng
 import select
 import json
 import traceback
 import time
-
+    
 
 class Bus(object):
     def __init__(self):
-        self._socket = nnpy.Socket(nnpy.AF_SP, nnpy.REQ)
+        self._socket = pynng.Req0() #updated to use new pynng API
         self._socket.connect('ipc:///tmp/koruza-command.ipc')
 
-    def command(self, command, **data):
+    def command(self, command: str, **data: dict) -> dict:
         data.update({
             'type': 'command',
             'command': command,
         })
 
-        self._socket.send(json.dumps(data))
+        self._socket.send(json.dumps(data).encode())
         try:
-            return json.loads(self._socket.recv())
+            return json.loads(self._socket.recv().decode())
         except ValueError:
             return None
 
@@ -28,16 +28,16 @@ class Application(object):
     needs_remote = False
 
     def __init__(self):
-        self._topic = 'application.%s' % self.application_id
+        self._topic = f'application.{self.application_id}' #updated to use f-strings
         self.config = {}
 
-    def start(self):
+    def start(self):    
         # Establish IPC connections.
-        publish = nnpy.Socket(nnpy.AF_SP, nnpy.SUB)
+        publish = pynng.Sub0()
         publish.connect('ipc:///tmp/koruza-publish.ipc')
-        publish.setsockopt(nnpy.SUB, nnpy.SUB_SUBSCRIBE, 'status')
-        publish.setsockopt(nnpy.SUB, nnpy.SUB_SUBSCRIBE, self._topic)
-        publish_fd = publish.getsockopt(nnpy.SOL_SOCKET, nnpy.RCVFD)
+        publish.subscribe(b'status')
+        publish.subscribe(self._topic.encode())
+        publish_fd = publish.recv_fd()
 
         command_bus = Bus()
         self._command_bus = command_bus
@@ -70,7 +70,8 @@ class Application(object):
 
                 while True:
                     try:
-                        topic, payload = socket.recv(nnpy.DONTWAIT).split('@', 1)
+                        msg = socket.recv(flags=pynng.Flags.NONBLOCK).decode() #updated to use new pynng API
+                        topic, payload = msg.split('@', 1) 
                     except AssertionError:
                         break
 
@@ -122,13 +123,13 @@ class Application(object):
                     remote_publish_fd = None
 
                 remote_publish = nnpy.Socket(nnpy.AF_SP, nnpy.SUB)
-                remote_publish.connect('tcp://%s:7100' % str(next_remote_ip))
+                remote_publish.connect(f'tcp://{str(next_remote_ip)}:7100') #updated to use f-strings 
                 remote_publish.setsockopt(nnpy.SUB, nnpy.SUB_SUBSCRIBE, 'status')
                 remote_publish.setsockopt(nnpy.SUB, nnpy.SUB_SUBSCRIBE, self._topic)
                 remote_publish_fd = remote_publish.getsockopt(nnpy.SOL_SOCKET, nnpy.RCVFD)
                 poll.register(remote_publish_fd, select.POLLIN)
 
-    def publish(self, data):
+    def publish(self, data: dict) -> None:
         self._command_bus.command(
             'call_application',
             application_id=self.application_id,
@@ -138,7 +139,7 @@ class Application(object):
             }
         )
 
-    def get_age(self, state, *path):
+    def get_age(self, state: dict, *path: str) -> float:
         age = state.get('_age', {})
 
         for atom in path:
@@ -151,14 +152,14 @@ class Application(object):
             else:
                 return time.time() - age
 
-    def on_idle(self, bus, state, remote_state):
+    def on_idle(self, bus: Bus, state: dict, remote_state: dict) -> None:
         pass
 
-    def on_command(self, bus, command, state, remote_state):
+    def on_command(self, bus: Bus, command: dict, state: dict, remote_state: dict) -> None:
         pass
 
-    def on_status_update(self, bus, update):
+    def on_status_update(self, bus: Bus, update: dict) -> None:
         pass
 
-    def on_remote_status_update(self, bus, update):
+    def on_remote_status_update(self, bus: Bus, update: dict) -> None:
         pass

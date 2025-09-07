@@ -92,7 +92,7 @@ class Alignment(koruza.Application):
 
             # Update distance between units
             self.d = self.config.get('distance', 10)
-            print 'Distance: %f' % self.d
+            print (f'Distance: {self.d}') #correct print statement
 
             # Calculate steps depending on a distance
             self.step_single = (1/1100)*self.d  # single step in mm on other unit
@@ -154,19 +154,19 @@ class Alignment(koruza.Application):
             self.print_time = time.time()
             self.restart = 0
 
-            print 'Got start command step=%d step-spiral=%d threshold min=%d threshold max=%d scaling local= %f scaling remote= %f' % (self.step, self.step_spiral, self.min_threshold, self.max_threshold, self.k1, self.k2)
+            print (f'Got start command step={self.step} step-spiral={self.step_spiral} threshold min={self.min_threshold} threshold max={self.max_threshold} scaling local= {self.k1} scaling remote= {self.k2}') #corrected print statement 
         elif command['command'] == 'stop' and self.state == 'go':
-            print 'Got stop command.'
+            print ('Got stop command.') # corrected print statement
             self.state = 'idle'
 
     def on_idle(self, bus, state, remote_state):
         if self.state == 'setup':
-            print 'Got to setup state.'
+            print ('Got to setup state.') #corrected print statement
             if not state.get('sfp') or not state.get('motors'):
                 # Do nothing until we have known last state from SFP and motor drivers.
                 return
             # Get last known state for the first SFP module.
-            sfp = state['sfp']['sfp'].values()[0]
+            sfp = list(state['sfp']['sfp'].values())[0] #corrected syntax
             # Get last known motor driver state.
             motor = state['motors']['motor']
 
@@ -185,27 +185,27 @@ class Alignment(koruza.Application):
         elif self.state == 'go':
             if not state.get('sfp') or not state.get('motors') or not remote_state.get('motors') or not remote_state.get('sfp'):
                 # Do nothing until we have known last state from SFP and motor drivers.
-                print 'ERROR: No connection!'
+                print ('ERROR: No connection!') #corrected print statement
 
             else:
                 # Get last known state for the first SFP module.
-                sfp = state['sfp']['sfp'].values()[0]
-                sfp_remote = remote_state['sfp']['sfp'].values()[0]
+                sfp = list(state['sfp']['sfp'].values())[0] #corrected syntax
+                sfp_remote = list(remote_state['sfp']['sfp'].values())[0] #corrected syntax
                 # Get last known motor driver state.
                 motor = state['motors']['motor']
                 motor_remote = remote_state['motors']['motor']
 
                 # Error loop - catch error when unit stops moving, resend request or change desired position
                 if not motor['next_x'] == self.wanted_x or not motor['next_y'] == self.wanted_y:
-                    print 'ERROR: Next and wanted position doesnt match.'
-                    print 'READING: C: %d, RC: %d, X: %d, nX: %d, wX: %d, Y: %d, nY: %d, wY: %d, SFP: %f' % (self.case, self.remote_case, motor['current_x'], motor['next_x'], self.wanted_x, motor['current_y'], motor['next_y'], self.wanted_y, self.sfp_reading)
+                    print ('ERROR: Next and wanted position doesnt match.') #corrected print statement
+                    print (f'READING: C: {self.case}, RC: {self.remote_case}, X: {motor["current_x"]}, nX: {motor["next_x"]}, wX: {self.wanted_x}, Y: {motor["current_y"]}, nY: {motor["next_y"]}, wY: {self.wanted_y}, SFP: {self.sfp_reading}') #corrected print statement
                     bus.command('motor_move', next_x = self.wanted_x, next_y = self.wanted_y)
 
                 if time.time() - self.print_time > 10:
                     self.print_time = time.time()
                     if not motor['current_x'] == self.wanted_x or not motor['current_y'] == self.wanted_y:
-                        print 'ERROR: Current and wanted position doesnt match.'
-                        print 'READING: C: %d, RC: %d, X: %d, nX: %d, wX: %d, Y: %d, nY: %d, wY: %d, SFP: %f' % (self.case, self.remote_case, motor['current_x'], motor['next_x'], self.wanted_x, motor['current_y'], motor['next_y'], self.wanted_y, self.sfp_reading)
+                        print ('ERROR: Current and wanted position doesnt match.')
+                        print (f'READING: C: {self.case}, RC: {self.remote_case}, X: {motor["current_x"]}, nX: {motor["next_x"]}, wX: {self.wanted_x}, Y: {motor["current_y"]}, nY: {motor["next_y"]}, wY: {self.wanted_y}, SFP: {self.sfp_reading}') #corrected print statements
                         self.wanted_x =  motor['current_x']
                         self.wanted_y = motor['current_y']
 
@@ -244,7 +244,7 @@ class Alignment(koruza.Application):
                     self.k = self.k + 1 # Update loop counter
 
                     if self.moving == 1 or time.time() - self.print_time > 1:
-                        print 'READING: C: %d, RC: %d, X: %d, nX: %d, wX: %d, Y: %d, nY: %d, wY: %d, SFP: %f' % (self.case, self.remote_case, motor['current_x'], motor['next_x'], self.wanted_x, motor['current_y'], motor['next_y'], self.wanted_y, self.sfp_reading)
+                        print (f'READING: C: {self.case}, RC: {self.remote_case}, X: {motor["current_x"]}, nX: {motor["next_x"]}, wX: {self.wanted_x}, Y: {motor["current_y"]}, nY: {motor["next_y"]}, wY: {self.wanted_y}, SFP: {self.sfp_reading}') #corrected print statement
                         self.print_time = time.time() #Reset printing time
 
                     # Check if running time exceeded max time - go to hibernation state
@@ -261,7 +261,7 @@ class Alignment(koruza.Application):
                         self.start_time = time.time()
                         # Reset stop time
                         self.max_time = 1800
-                        print 'Alignment timeout. Go to hibernation state.'
+                        print ('Alignment timeout. Go to hibernation state.')
 
                     # STATES
 
@@ -345,8 +345,7 @@ class Alignment(koruza.Application):
                                 self.moving = 1
 
                             else:
-                                print 'No condition met, Counter: %d, REQ: %d, REC: %d, Wait time: %f' % (self.counter, self.req_counter, self.rec_counter, time.time() - self.wait_time)
-
+                                print (f'No condition met, Counter: {self.counter}, REQ: {self.req_counter}, REC: {self.rec_counter}, Wait time: {time.time() - self.wait_time}') #corrected print statement
                         # If remote unit starts moving go to waiting state
                         else:
                             self.case = 3
@@ -399,7 +398,7 @@ class Alignment(koruza.Application):
                         if self.i == 100:
                             self.i = 1 # Reset counter
                             self.sfp_avg = self.sfp_avg/100 # Calculate average
-                            print 'New average average: %f' %self.sfp_avg
+                            print (f'New average average: {self.sfp_avg}') #corrected print statement
 
                             # Check if average has drop
                             if self.best_rx - self.sfp_avg > 2:
@@ -417,7 +416,7 @@ class Alignment(koruza.Application):
                             self.old_case = 20
                             self.max_time = 1800 # Set timeout to 30 min
                             self.start_time = time.time() # restart starting time
-                            print 'Re-align!'
+                            print ('Re-align!') #corrected print statement
 
                     # STATE 10: SPIRAL SCAN PREPARATION
                     elif self.case == 10:
@@ -503,7 +502,7 @@ class Alignment(koruza.Application):
                             self.wanted_x = self.start_x
                             self.wanted_y = self.start_y
                             bus.command('motor_move', next_x = self.wanted_x, next_y = self.wanted_y)
-                            print 'No power detected, let other unit scan.'
+                            print ('No power detected, let other unit scan.') #corrected print statement
                             # Wait for other unit to repeat
                             self.old_case = 10
                             self.case = 100
@@ -537,7 +536,7 @@ class Alignment(koruza.Application):
 
                         # Check if enough signal was found
                         if self.sfp_reading > self.max_threshold and self.sfp_reading_self > self.max_threshold_self and self.sfp_reading_remote > self.max_threshold_remote:
-                            print "Done!"
+                            print ("Done!") #corrected print statement
                             # Stay at the current point
                             self.wanted_x = motor['current_x']
                             self.wanted_y = motor['current_y']

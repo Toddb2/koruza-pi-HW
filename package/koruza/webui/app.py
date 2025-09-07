@@ -6,7 +6,7 @@ import flask_webpack
 import gevent
 from gevent import select, socket
 import geventwebsocket
-import nnpy
+import pynng
 import json
 import spwd
 import crypt
@@ -102,7 +102,7 @@ class Client(object):
                             if not self._authenticated:
                                 # Ensure that private configuration is not sent to unauthenticated clients.
                                 data = json.loads(data)
-                                for key in data['config'].keys():
+                                for key in data['config']: #simplified in python 3
                                     if key.startswith('private_'):
                                         del data['config'][key]
 
@@ -129,7 +129,7 @@ class Client(object):
             self._active = False
 
     def reply(self, data):
-        self._socket.send('command@' + json.dumps(data))
+        self._socket.send(('command@' + json.dumps(data)).encode()) #needed update for python 3
 
     def reply_ok(self, data):
         msg = {
@@ -174,11 +174,10 @@ class Client(object):
         wfd = self._command_bus.getsockopt(nnpy.SOL_SOCKET, nnpy.SNDFD)
         rfd = self._command_bus.getsockopt(nnpy.SOL_SOCKET, nnpy.RCVFD)
         rl, wl, xl = select.select([], [wfd], [])
-        self._command_bus.send(message)
-
+        self._command_bus.send(message.encode()) #socket handling should handle bytes
         # Wait for a response and dispatch it via the web socket.
         rl, wl, xl = select.select([rfd], [], [])
-        data = transform(self._command_bus.recv())
+        data = transform(self._command_bus.recv().decode())
         self._socket.send('command@' + data)
 
     def send_raw(self, data):
